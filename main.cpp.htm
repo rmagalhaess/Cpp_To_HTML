@@ -1,0 +1,152 @@
+<html>
+<head>
+	<title>main.cpp</title>
+	<LINK href="cpp.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+<pre><span class="comment">/*\
+|*|  CPP2HTML commandline transcoder
+|*|          by AngleWyrm
+\*/</span>
+<span class="macro">#include &lt;string&gt;  
+</span><span class="keyword">using</span> std::string;
+
+<span class="macro">#include &lt;iostream&gt; 
+</span><span class="keyword">using</span> std::cout;
+<span class="keyword">using</span> std::endl;
+
+<span class="macro">#include &lt;fstream&gt;
+</span><span class="keyword">using</span> std::ifstream;
+<span class="keyword">using</span> std::ofstream;
+
+<span class="macro">#include "TagCode.h"
+</span>
+<span class="keyword">void</span> DisplayUsage(<span class="keyword">void</span>); <span class="comment">// Print usage help text
+</span><span class="keyword">bool</span> CreateStyleSheet(<span class="keyword">void</span>); <span class="comment">// Create default style sheet cpp.css
+</span>
+<span class="comment">///////////////////////////////////////////////////////////////////////////////
+</span><span class="comment">// Main
+</span><span class="keyword">int</span> main(<span class="keyword">int</span> argc, <span class="keyword">char</span> *argv[])
+{
+    <span class="comment">// Print banner
+</span>    cout &lt;&lt; <span class="literal">"\nCPP2HTML transcoder v1.2"</span>
+         &lt;&lt; <span class="literal">"\n    by AngleWyrm"</span>
+         &lt;&lt; endl;
+    
+    <span class="comment">// verify command line    
+</span>    <span class="comment">// If no filenames on command line, then display usage and bail
+</span>    <span class="keyword">if</span>( argc &lt; <span class="numeric">2</span> ){ 
+        DisplayUsage();
+        <span class="keyword">return</span> <span class="numeric">1</span>;
+    } <span class="comment">// else command line populated (presumably with filenames)
+</span>    
+    <span class="comment">// Process each file
+</span>    ifstream inFile;
+    ofstream outFile;
+    string fileName;
+    <span class="keyword">for</span>(<span class="keyword">int</span> fileCounter = <span class="numeric">1</span>; fileCounter &lt; argc; fileCounter++){
+        
+        <span class="comment">// print progress indicator
+</span>        cout &lt;&lt; endl &lt;&lt; fileCounter &lt;&lt; <span class="literal">"/"</span> &lt;&lt; argc - <span class="numeric">1</span> &lt;&lt; <span class="literal">" \""</span> 
+             &lt;&lt; fileName &lt;&lt; <span class="literal">"\""</span>;
+
+        <span class="comment">// open input file
+</span>        inFile.close();
+        inFile.clear(); <span class="comment">// reset error messages
+</span>        inFile.open( argv[fileCounter] );
+        <span class="keyword">if</span>( ! inFile ){ <span class="comment">// If fail, proceed to next file
+</span>            cout &lt;&lt; <span class="literal">" *** FAILED TO OPEN INPUT ***"</span>;
+            <span class="keyword">continue</span>;
+        } <span class="comment">// else opened input file ok
+</span>        
+        <span class="comment">// open output file
+</span>        outFile.close();
+        outFile.clear(); <span class="comment">// reset error messages
+</span>        fileName = (string)argv[fileCounter] + <span class="literal">".htm"</span>;
+        
+        outFile.open( fileName.c_str() );
+        <span class="keyword">if</span>( ! outFile ){ <span class="comment">// If fail, proceed to next file
+</span>            cout &lt;&lt; <span class="literal">" *** FAILED TO OPEN OUTPUT ***"</span> 
+                 &lt;&lt; <span class="literal">" \""</span> &lt;&lt; fileName &lt;&lt; <span class="literal">"\""</span>;
+            <span class="keyword">continue</span>;
+        } <span class="comment">// else opened output file ok
+</span>        
+        <span class="comment">// convert web-interpretable codes to web-safe versions
+</span>        string webSafe; 
+        <span class="keyword">while</span>( inFile ){
+            <span class="keyword">char</span> inChar;
+            inFile.get( inChar );
+            <span class="keyword">switch</span> ( inChar ){
+                <span class="keyword">case</span> <span class="literal">'&amp;'</span>:
+                    webSafe += <span class="literal">"&amp;amp;"</span>; 
+                    <span class="keyword">break</span>;
+                <span class="keyword">case</span> <span class="literal">'&lt;'</span>:
+                    webSafe += <span class="literal">"&amp;lt;"</span>;
+                    <span class="keyword">break</span>;
+                <span class="keyword">case</span> <span class="literal">'&gt;'</span>:
+                    webSafe += <span class="literal">"&amp;gt;"</span>;
+                    <span class="keyword">break</span>;
+                <span class="keyword">default</span>:
+                    webSafe += inChar;
+            }
+        }
+        inFile.close();
+        
+        fsm::TagCode( webSafe );
+        
+        <span class="comment">// assemble HTML 
+</span>        string header = <span class="literal">"&lt;html&gt;\n&lt;head&gt;\n\t&lt;title&gt;"</span>;
+        header += argv[fileCounter];
+        header += <span class="literal">"&lt;/title&gt;\n"</span>;
+        header += <span class="literal">"\t&lt;LINK href=\"cpp.css\" rel=\"stylesheet\" type=\"text/css\"&gt;\n"</span>;
+        header += <span class="literal">"&lt;/head&gt;\n&lt;body&gt;\n&lt;pre&gt;"</span>;
+        
+        webSafe = header + webSafe + <span class="literal">"&lt;/pre&gt;\n&lt;/body&gt;\n&lt;/html&gt;"</span>;
+              
+        <span class="comment">// save to new file
+</span>        outFile &lt;&lt; webSafe;
+        outFile.close();
+        
+        cout &lt;&lt; <span class="literal">" -&gt; \""</span> &lt;&lt; fileName &lt;&lt; <span class="literal">"\""</span>;
+    } <span class="comment">// next fileCounter
+</span>    
+    <span class="comment">// create CPP.CSS if necessary
+</span>    ifstream cppCss(<span class="literal">"cpp.css"</span>);
+    <span class="keyword">if</span>(!cppCss){
+        CreateStyleSheet();
+        cout &lt;&lt; <span class="literal">"\nCPP.CSS created."</span>;
+    }
+    
+    cout &lt;&lt; <span class="literal">"\n\nDone."</span> &lt;&lt; endl;
+} <span class="comment">// main
+</span>
+<span class="comment">///////////////////////////////////////////////////////////////////////////////
+</span><span class="comment">// DisplayUsage
+</span><span class="keyword">void</span> DisplayUsage(<span class="keyword">void</span>)
+{
+    <span class="comment">// Display command line usage screen
+</span>    cout &lt;&lt; <span class="literal">"Usage: cpp2html filename1.ext\n"</span>
+         &lt;&lt; endl;
+} <span class="comment">// DisplayUsage
+</span>
+<span class="comment">///////////////////////////////////////////////////////////////////////////////
+</span><span class="comment">// cpp.css stylesheet template
+</span><span class="keyword">bool</span> CreateStyleSheet( <span class="keyword">void</span> ){
+    ofstream styleSheet(<span class="literal">"cpp.css"</span>);
+    <span class="keyword">if</span>( styleSheet ){
+        styleSheet 
+               &lt;&lt; <span class="literal">".comment {\n	color:DarkGray;\n	font-style:italic;\n}\n"</span>
+               &lt;&lt; <span class="literal">".macro {\n	color:ForestGreen;\n}\n"</span>
+               &lt;&lt; <span class="literal">".literal {\n	color:Red;\n}\n"</span>
+               &lt;&lt; <span class="literal">".keyword {\n	color:Black;\n	font-weight:bold;\n}\n"</span>
+               &lt;&lt; <span class="literal">".numeric {\n	color:RoyalBlue;\n}"</span>
+               &lt;&lt; endl;
+    } <span class="comment">// else failed to create cpp.css
+</span>    <span class="keyword">return</span> styleSheet.good();
+} <span class="comment">// CreateStyleSheet
+</span>
+
+
+</pre>
+</body>
+</html>
